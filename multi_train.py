@@ -133,14 +133,14 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
         init = tf.global_variables_initializer()
         sess = tf.Session()
         
-        
+        start = time.time()
         if is_restore is True:
             saver.restore(sess, model.save_dir)
             tf.get_variable_scope().reuse_variables()
             model.epoch = int(sess.run(global_step) // epoch_size)
         else:
             print("Initializing Variables")
-            start = time.time()
+            
             sess.run(init)
 
         tf.train.start_queue_runners(sess=sess)
