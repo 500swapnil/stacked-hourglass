@@ -178,7 +178,7 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
                         for i in range(10):
                             x, y = coord(logits[k,model.nStacks-1,:,:,i])
                             plt.scatter(x, y, s=10, c='red', marker='x')
-                        plt.savefig(output_dir + str(int(sess.run(global_step) + '_' + str(k))) + '.png')
+                        plt.savefig(output_dir + str(int(sess.run(global_step))) + '_' + str(k) + '.png')
 
             epoch_time = time.time() - epoch_start_time
             model.epoch += 1
