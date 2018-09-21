@@ -35,7 +35,7 @@ def conv2d(name, inputs, filters, kernel_size, stride=1,
         conv = tf.nn.bias_add(conv, bias)
 
         if batch_norm:
-            conv = tf.layers.batch_normalization(conv, name='bn', momentum=0.1, training=training)
+            conv = tf.layers.batch_normalization(conv, name='bn', momentum=0.1, epsilon=1e-5 , training=training, trainable=True)
         if act_relu:
             conv = tf.nn.relu(conv)
     return conv
@@ -52,7 +52,7 @@ def skip_layer(name, inputs, num_out):
 
 def conv_block(name, inputs, num_out):
     with tf.variable_scope(name) as scope:
-        bn = tf.layers.batch_normalization(inputs, name='bn', momentum=0.1, training=training)
+        bn = tf.layers.batch_normalization(inputs, name='bn', momentum=0.1, epsilon=1e-5 ,training=training, trainable=True)
         relu = tf.nn.relu(bn)
         conv1 = conv2d('conv1', relu, filters=num_out / 2, kernel_size=1)
         conv2 = conv2d('conv2', conv1, filters=num_out / 2,

@@ -7,6 +7,7 @@ import time
 import multi_hourglass as model
 from datagenerator import DataGenerator
 from progressBar import progBar
+import inference as out
 
 num_gpus = 4
 datagen = DataGenerator(img_dir='chair3_final', nKeypoints=10, data_file='chair.txt')
@@ -38,7 +39,7 @@ def accur(prediction, gt_map, batch_size):
     if count_existing > 0:
         return total_correct/count_existing
     else:
-        return 0.5
+        return 1
 
 def total_accuracy(output, gt_map, nKeypoints, nStacks, batch_size):
     accur_array = []
@@ -51,7 +52,7 @@ def tower_loss(scope, images, gt_map, weights):
     _ = model.loss(output, gt_map, weights)
     losses = tf.get_collection('losses', scope)
     total_loss = tf.add_n(losses, name='total_loss')
-    return total_loss
+    return [output, total_loss]
 
 def average_gradients(tower_grads):
     average_grads = []
@@ -108,16 +109,16 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
                     with tf.name_scope('%s_%d' % ('tower', i)) as scope:
                         
                         image_batch, gt_batch, wt_batch = batch_queue.dequeue()
-                        
-                        loss = tower_loss(scope, image_batch, gt_batch, wt_batch)
+                        # tf.get_variable_scope().reuse_variables()
+                        train_eval_output, loss = tower_loss(scope, image_batch, gt_batch, wt_batch)
 
                         tf.get_variable_scope().reuse_variables()
                         
-                        model.training = False
+                        # model.training = False
                         
-                        train_eval_output = model.inference(image_batch)
+                        # train_eval_output = model.inference(image_batch)
 
-                        model.training = True
+                        # model.training = True
 
                         grads = optim.compute_gradients(loss)
 
@@ -174,9 +175,10 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
             if (epoch+1) % 5 == 0 or (epoch+1)==nEpochs:
                 saver.save(sess, model.save_dir)
                 print("Model Saved")
+                out.show_output()
 
         print("Total Time Elapsed:  %.3f" % (time.time()-total_start),"sec")
 
-train(nEpochs=50, learning_rate=2.5e-4, opt='adam', epoch_size=80, 
+train(nEpochs=50, learning_rate=5e-5, opt='adam', epoch_size=90, 
         batch_size=4, is_restore=False)
 
