@@ -4,7 +4,6 @@ import tensorflow as tf
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
 
 sess = tf.Session()
 
@@ -50,3 +49,5 @@ def mark_keypoints(image_name):
         x, y = coord(hm[:,:,i])
         plt.scatter(x, y, s=10, c='red', marker='x')
     plt.show()
+
+show_output()

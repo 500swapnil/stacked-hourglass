@@ -4,10 +4,10 @@ import cv2
 import pandas as pd
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 import multi_hourglass as model
 from datagenerator import DataGenerator
 from progressBar import progBar
-import inference as out
 
 num_gpus = 4
 datagen = DataGenerator(img_dir='chair3_final', nKeypoints=10, data_file='chair.txt')
@@ -40,6 +40,9 @@ def accur(prediction, gt_map, batch_size):
         return total_correct/count_existing
     else:
         return 1
+
+def coord(hm):
+    return (np.argmax(hm) // datagen.width, np.argmax(hm) % datagen.width)
 
 def total_accuracy(output, gt_map, nKeypoints, nStacks, batch_size):
     accur_array = []
@@ -75,7 +78,8 @@ def average_gradients(tower_grads):
 
 
 def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
-        learning_rate=2.5e-4, lr_decay=1, decay_step=2000, opt='rms'):
+        learning_rate=2.5e-4, lr_decay=1, decay_step=2000, opt='rms', store_output=False,
+        output_dir='./outputs/'):
     
     with tf.Graph().as_default(), tf.device('/cpu:0'):
         global_step = tf.get_variable('global_step', [],
@@ -162,11 +166,20 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
             print("\nEpoch", model.epoch+1)
             for iteration in range(epoch_size):
                 progBar(iteration+1, epoch_size)
-                _, logits , gt,  stLoss = sess.run([train_op, train_eval_output, gt_batch, loss])
+                _, logits , input_im, gt, stLoss = sess.run([train_op, train_eval_output, image_batch, gt_batch, loss])
                 total_loss += stLoss
                 accur_pred = total_accuracy(logits, gt, nKeypoints=model.nKeypoints, nStacks=model.nStacks, batch_size=batch_size)
                 # print(accur_pred)
                 accuracy += np.sum(accur_pred)*100 / len(accur_pred)
+
+                if iteration == epoch_size-1 and (epoch+1) % 5 == 0 and store_output==True:
+                    for k in range(batch_size):
+                        plt.imshow(input_im[k,:,:,:])
+                        for i in range(10):
+                            x, y = coord(logits[k,model.nStacks-1,:,:,i])
+                            plt.scatter(x, y, s=10, c='red', marker='x')
+                        plt.savefig(output_dir + str(int(sess.run(global_step) + '_' + str(k))) + '.png')
+
             epoch_time = time.time() - epoch_start_time
             model.epoch += 1
             print('\nTrain Accuracy : %.3f' % (accuracy/epoch_size), '%')
@@ -175,10 +188,9 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
             if (epoch+1) % 5 == 0 or (epoch+1)==nEpochs:
                 saver.save(sess, model.save_dir)
                 print("Model Saved")
-                out.show_output()
 
         print("Total Time Elapsed:  %.3f" % (time.time()-total_start),"sec")
 
 train(nEpochs=50, learning_rate=5e-5, opt='adam', epoch_size=90, 
-        batch_size=4, is_restore=False)
+        batch_size=4, is_restore=False, store_output=True)
 
