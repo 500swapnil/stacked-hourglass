@@ -10,7 +10,7 @@ sess = tf.Session()
 datagen = DataGenerator(img_dir='chair1', nKeypoints=10, data_file='chair_mini.txt')
 model.nFeats = 256
 model.nStacks = 4
-model.training = False
+
 
 def show_output(image_name):
     image = datagen.read_image(image_name)
@@ -18,6 +18,7 @@ def show_output(image_name):
     input_im = input_im.astype(np.float32)
     
     output = model.inference(input_im)
+    model.training = True
     sess = tf.Session(config=tf.ConfigProto(
         allow_soft_placement=True))
     saver = tf.train.Saver(tf.global_variables())

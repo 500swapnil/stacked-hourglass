@@ -9,10 +9,11 @@ from datagenerator import DataGenerator
 from progressBar import progBar
 
 num_gpus = 4
-datagen = DataGenerator(img_dir='chair1', nKeypoints=10, data_file='chair_mini.txt')
+datagen = DataGenerator(img_dir='chair3_final', nKeypoints=10, data_file='chair.txt')
 model.save_dir = './saved_model/'
 model.nFeats = 256
-model.nStacks = 4
+model.nStacks = 8
+momentum = 0
 
 def peak(heatmap):
     argmax = np.argmax(heatmap)
@@ -50,7 +51,7 @@ def tower_loss(scope, images, gt_map, weights):
     _ = model.loss(output, gt_map, weights)
     losses = tf.get_collection('losses', scope)
     total_loss = tf.add_n(losses, name='total_loss')
-    return [output, total_loss]
+    return total_loss
 
 def average_gradients(tower_grads):
     average_grads = []
@@ -81,7 +82,9 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
 
         # if epoch_size is None:
         #     epoch_size = len(datagen.images) // batch_size
-
+        # dummy_inp, dummy_gt, dummy_wt = datagen.generate_batch(batch_size=batch_size, nStacks=model.nStacks)
+        # dummy_out = model.inference(dummy_inp)
+        # saver = tf.train.Saver()
         
         total_start = time.time()
         
@@ -103,13 +106,19 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
             for i in range(num_gpus):
                 with tf.device('/gpu:%d' % i):
                     with tf.name_scope('%s_%d' % ('tower', i)) as scope:
-
+                        
                         image_batch, gt_batch, wt_batch = batch_queue.dequeue()
                         
-                        output, loss = tower_loss(scope, image_batch, gt_batch, wt_batch)
+                        loss = tower_loss(scope, image_batch, gt_batch, wt_batch)
 
                         tf.get_variable_scope().reuse_variables()
                         
+                        model.training = False
+                        
+                        train_eval_output = model.inference(image_batch)
+
+                        model.training = True
+
                         grads = optim.compute_gradients(loss)
 
                         tower_grads.append(grads)
@@ -128,18 +137,18 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
         train_op = tf.group(apply_gradient_op, variables_averages_op)
         print("Model built in %.3f sec" % (time.time() - total_start))
 
-        saver = tf.train.Saver()
+        
 
         init = tf.global_variables_initializer()
         sess = tf.Session()
-        
+        saver = tf.train.Saver()
         start = time.time()
         if is_restore is True:
             saver.restore(sess, model.save_dir)
             tf.get_variable_scope().reuse_variables()
             model.epoch = int(sess.run(global_step) // epoch_size)
         else:
-            print("Initializing Variables")
+            print("\nInitializing Variables")
             
             sess.run(init)
 
@@ -148,54 +157,26 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
         for epoch in range(nEpochs):
             epoch_start_time = time.time()
             total_loss = 0
-            model.training=True
             accuracy = 0
             print("\nEpoch", model.epoch+1)
             for iteration in range(epoch_size):
                 progBar(iteration+1, epoch_size)
-                _, logits , gt,  stLoss = sess.run([train_op, output, gt_batch, loss])
+                _, logits , gt,  stLoss = sess.run([train_op, train_eval_output, gt_batch, loss])
                 total_loss += stLoss
                 accur_pred = total_accuracy(logits, gt, nKeypoints=model.nKeypoints, nStacks=model.nStacks, batch_size=batch_size)
                 # print(accur_pred)
                 accuracy += np.sum(accur_pred)*100 / len(accur_pred)
             epoch_time = time.time() - epoch_start_time
             model.epoch += 1
-            # print(sess.run(global_step))
-            # print(sess.run(optim._learning_rate))
             print('\nTrain Accuracy : %.3f' % (accuracy/epoch_size), '%')
             print("Loss : %f" % (total_loss/epoch_size), " Time Elapsed: %.3f" % epoch_time,"sec\n")
+            
             if (epoch+1) % 5 == 0 or (epoch+1)==nEpochs:
                 saver.save(sess, model.save_dir)
                 print("Model Saved")
-                # saver.restore(sess, model.save_dir)
 
         print("Total Time Elapsed:  %.3f" % (time.time()-total_start),"sec")
 
+train(nEpochs=50, learning_rate=2.5e-4, opt='adam', epoch_size=80, 
+        batch_size=4, is_restore=False)
 
-def coord(hm):
-    return (np.argmax(hm) // datagen.width, np.argmax(hm) % datagen.width)
-
-def test(test_size=100):
-    
-    test_images, test_gt = datagen.generate_batch(batch_size=test_size, nStacks=model.nStacks)
-    hm = model.inference(test_images)
-    sess = tf.Session(config=tf.ConfigProto(
-        allow_soft_placement=True))
-    saver = tf.train.Saver(tf.global_variables())
-    saver.restore(sess, model.save_dir)
-    tf.get_variable_scope().reuse_variables()
-    outputs = sess.run(hm)
-    # k = []
-    # for i in range(10):
-    #     x, y = coord(outputs[0,0,:,:,i])
-    #     a, b = coord(test_gt[0,0,:,:,i])
-    #     print(x,y)
-    #     print(a,b)
-    #     print("\n\n")
-    # model.training=False
-    accuracy_pred = total_accuracy(outputs, test_gt, nKeypoints=model.nKeypoints, nStacks=model.nStacks, batch_size=test_size)
-    print('\nTrain Accuracy : %.3f' % (np.sum(accuracy_pred)*100 / len(accuracy_pred)), '%')
-
-train(nEpochs=50, learning_rate=2.5e-5, opt='adam', epoch_size=80, 
-        batch_size=4, is_restore=True)
-# test()

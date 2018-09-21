@@ -7,17 +7,16 @@ depth=4
 nFeats=256
 nModules=1
 nKeypoints=10
-momentum=0.009
 save_dir='./saved_model/'
 training=True
-weight_decay=None
+weight_decay=0.004
 epoch = 0
 
 def variable_on_cpu(name, shape, initializer, dtype=tf.float32, wd=weight_decay):
     with tf.device('/cpu:0'):
         var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype)
         if wd is not None:
-            weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
+            weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_decay')
             tf.add_to_collection('losses', weight_decay)
     return var
 
