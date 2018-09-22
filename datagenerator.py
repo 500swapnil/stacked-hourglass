@@ -29,8 +29,8 @@ class DataGenerator():
             keypointX, keypointY = keypoints[2*i:2*i+2]
             if keypointX != -1 and keypointY != -1:
                 hm[:, :, i] = self.gaussian(s=3, center=(keypointY, keypointX))
-            else:
-                wt[:, :, i] = np.zeros([self.width, self.height])
+            # else:
+            #     wt[:, :, i] = np.zeros([self.width, self.height])
         return hm, wt
 
     def read_image(self, loc):

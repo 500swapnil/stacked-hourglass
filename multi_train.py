@@ -9,7 +9,7 @@ import multi_hourglass as model
 from datagenerator import DataGenerator
 from progressBar import progBar
 
-num_gpus = 4
+num_gpus = 2
 datagen = DataGenerator(img_dir='chair3_final', nKeypoints=10, data_file='chair.txt')
 model.save_dir = './saved_model/'
 model.nFeats = 256
@@ -84,12 +84,6 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
     with tf.Graph().as_default(), tf.device('/cpu:0'):
         global_step = tf.get_variable('global_step', [],
                 initializer=tf.constant_initializer(0), trainable=False)
-
-        # if epoch_size is None:
-        #     epoch_size = len(datagen.images) // batch_size
-        # dummy_inp, dummy_gt, dummy_wt = datagen.generate_batch(batch_size=batch_size, nStacks=model.nStacks)
-        # dummy_out = model.inference(dummy_inp)
-        # saver = tf.train.Saver()
         
         total_start = time.time()
         
@@ -113,16 +107,16 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
                     with tf.name_scope('%s_%d' % ('tower', i)) as scope:
                         
                         image_batch, gt_batch, wt_batch = batch_queue.dequeue()
-                        # tf.get_variable_scope().reuse_variables()
+                        
                         train_eval_output, loss = tower_loss(scope, image_batch, gt_batch, wt_batch)
 
                         tf.get_variable_scope().reuse_variables()
                         
-                        # model.training = False
+                        # model.training = True
                         
                         # train_eval_output = model.inference(image_batch)
 
-                        # model.training = True
+                        # model.training = False
 
                         grads = optim.compute_gradients(loss)
 
@@ -154,7 +148,6 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
             model.epoch = int(sess.run(global_step) // epoch_size)
         else:
             print("\nInitializing Variables")
-            
             sess.run(init)
 
         tf.train.start_queue_runners(sess=sess)
@@ -172,13 +165,14 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
                 # print(accur_pred)
                 accuracy += np.sum(accur_pred)*100 / len(accur_pred)
 
-                if iteration == epoch_size-1 and (epoch+1) % 5 == 0 and store_output==True:
+                if iteration == epoch_size-1 and store_output==True:
                     for k in range(batch_size):
                         plt.imshow(input_im[k,:,:,:])
                         for i in range(10):
                             x, y = coord(logits[k,model.nStacks-1,:,:,i])
                             plt.scatter(x, y, s=10, c='red', marker='x')
-                        plt.savefig(output_dir + str(int(sess.run(global_step))) + '_' + str(k) + '.png')
+                        plt.savefig(output_dir + str(k) + '_' + str(model.epoch+1) + '.png')
+                        plt.clf()
 
             epoch_time = time.time() - epoch_start_time
             model.epoch += 1
@@ -191,6 +185,6 @@ def train(nEpochs=10, epoch_size=None, is_restore=False, batch_size=8,
 
         print("Total Time Elapsed:  %.3f" % (time.time()-total_start),"sec")
 
-train(nEpochs=50, learning_rate=5e-5, opt='adam', epoch_size=90, 
-        batch_size=4, is_restore=False, store_output=True)
+train(nEpochs=50, learning_rate=2.5e-5, opt='adam', epoch_size=90, 
+        batch_size=8, is_restore=False, store_output=True)
 

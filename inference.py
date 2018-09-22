@@ -11,7 +11,7 @@ datagen = DataGenerator(img_dir='chair1', nKeypoints=10, data_file='chair_mini.t
 model.nFeats = 256
 model.nStacks = 8
 model.training = True
-batch_size = 4
+batch_size = 8
 def show_output():
     input_im, gt, wt = datagen.generate_batch(batch_size=batch_size,nStacks=model.nStacks)
     
@@ -33,6 +33,7 @@ def show_output():
             # print(x,y)
             plt.scatter(x, y, s=10, c='red', marker='x')
         plt.savefig(str(k) + '_' + str(int(sess.run(global_step))) + '.png')
+        plt.clf()
         print(k)
 
 def coord(hm):

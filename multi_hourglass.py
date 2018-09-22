@@ -26,11 +26,11 @@ def conv2d(name, inputs, filters, kernel_size, stride=1,
         std = 1/np.sqrt(kernel_size*kernel_size*int(inputs.shape[3]))
 
         kernel = variable_on_cpu('kernel',shape=[kernel_size, kernel_size, int(inputs.shape[3]), int(filters)],
-                    initializer=tf.truncated_normal_initializer(stddev=std,dtype=tf.float32))
+                    initializer=tf.random_uniform_initializer(-std, std))
 
         conv = tf.nn.conv2d(inputs, kernel, strides=[1, stride, stride, 1], padding=padd)
 
-        bias = variable_on_cpu('bias',shape=[filters],initializer=tf.truncated_normal_initializer(stddev=std,dtype=tf.float32))
+        bias = variable_on_cpu('bias',shape=[filters],initializer=tf.random_uniform_initializer(-std, std))
 
         conv = tf.nn.bias_add(conv, bias)
 
@@ -131,7 +131,7 @@ def inference(inputs):
 
 def loss(predictions, gt_map, weights):
     losses = tf.reduce_mean(tf.losses.mean_squared_error(
-        predictions=predictions, labels=gt_map, weights=weights))
+        predictions=predictions, labels=gt_map))
     tf.add_to_collection('losses', losses)
     return tf.add_n(tf.get_collection('losses'), name='total_loss')
 
