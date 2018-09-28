@@ -33,9 +33,10 @@ def conv2d(name, inputs, filters, kernel_size, stride=1,
         bias = variable_on_cpu('bias',shape=[filters],initializer=tf.random_uniform_initializer(-std, std))
 
         conv = tf.nn.bias_add(conv, bias)
-
+        
         if batch_norm:
-            conv = tf.layers.batch_normalization(conv, name='bn', momentum=0.1, epsilon=1e-5 , training=training, trainable=True)
+            conv = tf.layers.batch_normalization(conv, name='bn', momentum=0.1, epsilon=1e-5 , training=training, trainable=True, 
+                gamma_initializer=tf.random_uniform_initializer(0, 1))
         if act_relu:
             conv = tf.nn.relu(conv)
     return conv
@@ -46,13 +47,14 @@ def linear(name, inputs, num_out):
 
 def skip_layer(name, inputs, num_out):
     if int(inputs.shape[3]) == num_out:
-        return inputs
+        return tf.identity(inputs, name='identity')
     else:
-        return conv2d(name, inputs, num_out, 1, act_relu=False, batch_norm=False)
+        return conv2d(name, inputs, filters=num_out, kernel_size=1, act_relu=False, batch_norm=False)
 
 def conv_block(name, inputs, num_out):
     with tf.variable_scope(name) as scope:
-        bn = tf.layers.batch_normalization(inputs, name='bn', momentum=0.1, epsilon=1e-5 ,training=training, trainable=True)
+        bn = tf.layers.batch_normalization(inputs, name='bn', momentum=0.1, epsilon=1e-5 ,training=training, trainable=True, 
+            gamma_initializer=tf.random_uniform_initializer(0, 1))
         relu = tf.nn.relu(bn)
         conv1 = conv2d('conv1', relu, filters=num_out / 2, kernel_size=1)
         conv2 = conv2d('conv2', conv1, filters=num_out / 2,
@@ -65,7 +67,8 @@ def residual(name, inputs, num_out):
     with tf.variable_scope(name) as scope:
         convB = conv_block('convB',inputs, num_out)
         skip = skip_layer('skip',inputs, num_out)
-    return tf.add_n([convB, skip])
+        convB = tf.add_n([convB, skip])
+    return convB
 
 def max_pool(inputs, kernel_size=2, stride=2, padd="VALID"):
     return tf.nn.max_pool(inputs, ksize=[1, kernel_size, kernel_size, 1], strides=[1, stride, stride, 1], padding=padd)
@@ -113,23 +116,28 @@ def inference(inputs):
     for i in range(nStacks):
         with tf.variable_scope('stack_%d' % i) as scope:
             hg = hourglass('hg', inter, n=depth, num_out=nFeats)
-            res = residual('drop', hg, nFeats)
+            res = hg
             for j in range(nModules):
                 res = residual('res_%d'%j,res, nFeats)
 
             lin = linear('lin',res, num_out=nFeats)
 
-            out[i] = linear('out',lin, num_out=nKeypoints)
+            out[i] = conv2d('out',lin, filters=nKeypoints,
+                            kernel_size=1, stride=1, batch_norm=False, act_relu=False)
 
             if i < nStacks - 1:
-                lin_ = linear('lin_',lin, num_out=nFeats)
-                tmp_out = linear('tmp_out', out[i], num_out=nFeats)
-                inter = inter + lin_ + tmp_out
+                lin_ = conv2d('lin_',lin, filters=nFeats,
+                            kernel_size=1, stride=1, batch_norm=False, act_relu=False)
+
+                tmp_out = conv2d('tmp_out', out[i], filters=nFeats,
+                            kernel_size=1, stride=1, batch_norm=False, act_relu=False)
+
+                inter = tf.add_n([inter + lin_ + tmp_out])
 
     output = tf.stack(out, axis=1)
     return output
 
-def loss(predictions, gt_map, weights):
+def loss(predictions, gt_map):
     losses = tf.reduce_mean(tf.losses.mean_squared_error(
         predictions=predictions, labels=gt_map))
     tf.add_to_collection('losses', losses)
