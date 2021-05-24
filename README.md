@@ -4,14 +4,14 @@ A Tensorflow+Keras implementation of [Stacked Hourglass Network for Keypoint Det
 
 ## Dependencies
 1. Python 3.6+
-2. Tensorflow 2.4.0 (For GPU, use Tensorflow-GPU 2.4.0)
+2. Tensorflow 2.5.0 (For GPU, use Tensorflow-GPU 2.5.0)
 3. Pandas
 
 To install these dependencies for CPU, run
 ```bash
 pip install -r requirements.txt
 ```
-(For GPU support, change line `tensorflow==2.4.0` to `tensorflow-gpu==2.4.0` in requirements.txt)
+(For GPU support, change line `tensorflow==2.5.0` to `tensorflow-gpu==2.5.0` in requirements.txt)
 
 
 ## Train Model
