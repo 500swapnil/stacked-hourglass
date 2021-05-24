@@ -4,14 +4,14 @@ A Tensorflow+Keras implementation of [Stacked Hourglass Network for Keypoint Det
 
 ## Dependencies
 1. Python 3.6+
-2. Tensorflow 2.5.0 (For GPU, use Tensorflow-GPU 2.5.0)
+2. Tensorflow 2.2.0+ (For GPU, use Tensorflow-GPU 2.2.0+)
 3. Pandas
 
 To install these dependencies for CPU, run
 ```bash
 pip install -r requirements.txt
 ```
-(For GPU support, change line `tensorflow==2.5.0` to `tensorflow-gpu==2.5.0` in requirements.txt)
+(For GPU support, change line `tensorflow>=2.2.0` to `tensorflow-gpu>=2.2.0` in requirements.txt)
 
 
 ## Train Model
@@ -29,5 +29,7 @@ The dataloader expects a csv file indicating (assuming `N` keypoints)
 The image directory (`DATA_DIR`) and annotation csv (`anno_file`) need to be specified in `params.py`.
 
 ---
+## References
+1. https://github.com/bearpaw/pytorch-pose
 
 _(Evaluation and Visualization is under progress)_

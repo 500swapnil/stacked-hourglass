@@ -1,3 +1,6 @@
+'''
+Architecture adapted from https://github.com/bearpaw/pytorch-pose
+'''
 import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, BatchNormalization, ReLU
 from model.residual import ResidualBlock

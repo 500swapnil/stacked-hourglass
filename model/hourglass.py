@@ -1,3 +1,6 @@
+'''
+Architecture adapted from https://github.com/bearpaw/pytorch-pose
+'''
 import tensorflow as tf
 from tensorflow.keras.layers import UpSampling2D, MaxPool2D
 from .residual import ResidualBlock
