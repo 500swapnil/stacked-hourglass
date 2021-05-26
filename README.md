@@ -1,5 +1,5 @@
 # TFKeras Implementation of Stacked Hourglass Network
-A Tensorflow+Keras implementation of [Stacked Hourglass Network for Keypoint Detection](https://arxiv.org/abs/1603.06937) of chairs and cars.
+A Tensorflow+Keras implementation of [Stacked Hourglass Network for Keypoint Detection](https://arxiv.org/abs/1603.06937) with several residual layers and can be trained to detect keypoints of chairs and cars.
 
 
 ## Dependencies
@@ -32,4 +32,4 @@ The image directory (`DATA_DIR`) and annotation csv (`anno_file`) need to be spe
 ## References
 1. https://github.com/bearpaw/pytorch-pose
 
-_(Evaluation and Visualization is under progress)_
+_(Visualization is under progress)_
